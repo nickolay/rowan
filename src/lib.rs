@@ -18,6 +18,7 @@ mod syntax_text;
 mod utility_types;
 #[cfg(feature = "serde1")]
 mod serde_impls;
+mod tree_id;
 
 // Reexport types for working with strings. We might be too opinionated about
 // these, as a custom interner might work better, but `SmolStr` is a pretty good
@@ -31,5 +32,6 @@ pub use crate::{
     },
     green::{Checkpoint, Children, GreenNode, GreenNodeBuilder, GreenToken, SyntaxKind},
     syntax_text::SyntaxText,
+    tree_id::TreeId,
     utility_types::{Direction, NodeOrToken, TokenAtOffset, WalkEvent},
 };
