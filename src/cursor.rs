@@ -9,11 +9,18 @@ use std::{
 use crate::{
     green::{GreenElementRef, SyntaxKind},
     Children, Direction, GreenNode, GreenToken, NodeOrToken, SmolStr, SyntaxText, TextRange,
-    TextUnit, TokenAtOffset, WalkEvent,
+    TextUnit, TokenAtOffset, TreeId, WalkEvent,
 };
 
 #[derive(Debug, Clone)]
 pub struct SyntaxNode(Rc<NodeData>);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct NodeId {
+    kind: SyntaxKind,
+    tree_id: TreeId,
+    text_range: TextRange,
+}
 
 impl Drop for SyntaxNode {
     fn drop(&mut self) {
@@ -21,11 +28,9 @@ impl Drop for SyntaxNode {
     }
 }
 
-// Identity semantics for hash & eq
 impl PartialEq for SyntaxNode {
     fn eq(&self, other: &SyntaxNode) -> bool {
-        ptr::eq(self.green(), other.green())
-            && self.text_range().start() == other.text_range().start()
+        self.node_id() == other.node_id()
     }
 }
 
@@ -33,8 +38,7 @@ impl Eq for SyntaxNode {}
 
 impl Hash for SyntaxNode {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        ptr::hash(self.green(), state);
-        self.text_range().start().hash(state);
+        self.node_id().hash(state)
     }
 }
 
@@ -103,6 +107,7 @@ impl Kind {
 
 #[derive(Debug)]
 struct NodeData {
+    tree_id: TreeId,
     kind: Kind,
     green: ptr::NonNull<GreenNode>,
 }
@@ -119,6 +124,7 @@ impl FreeList {
         let mut res = FreeList { first_free: None, len: 0 };
         for _ in 0..FREE_LIST_LEN {
             res.try_push(&mut Rc::new(NodeData {
+                tree_id: TreeId::new(0),
                 kind: Kind::Free { next_free: None },
                 green: ptr::NonNull::dangling(),
             }))
@@ -157,9 +163,10 @@ impl FreeList {
 }
 
 impl NodeData {
-    fn new(kind: Kind, green: ptr::NonNull<GreenNode>) -> Rc<NodeData> {
+    fn new(tree_id: TreeId, kind: Kind, green: ptr::NonNull<GreenNode>) -> Rc<NodeData> {
         let mut node = FreeList::with(|it| it.pop()).unwrap_or_else(|| {
             Rc::new(NodeData {
+                tree_id,
                 kind: Kind::Free { next_free: None },
                 green: ptr::NonNull::dangling(),
             })
@@ -185,9 +192,12 @@ impl SyntaxNode {
     fn new(data: Rc<NodeData>) -> SyntaxNode {
         SyntaxNode(data)
     }
-
     pub fn new_root(green: GreenNode) -> SyntaxNode {
-        let data = NodeData::new(Kind::Root(green), ptr::NonNull::dangling());
+        SyntaxNode::new_root_with_id(TreeId::new_auto(), green)
+    }
+
+    pub fn new_root_with_id(tree_id: TreeId, green: GreenNode) -> SyntaxNode {
+        let data = NodeData::new(tree_id, Kind::Root(green), ptr::NonNull::dangling());
         let mut ret = SyntaxNode::new(data);
         let green: ptr::NonNull<GreenNode> = match &ret.0.kind {
             Kind::Root(green) => green.into(),
@@ -205,7 +215,8 @@ impl SyntaxNode {
         index: u32,
         offset: TextUnit,
     ) -> SyntaxNode {
-        let data = NodeData::new(Kind::Child { parent, index, offset }, green.into());
+        let tree_id = parent.tree_id();
+        let data = NodeData::new(tree_id, Kind::Child { parent, index, offset }, green.into());
         SyntaxNode::new(data)
     }
 
@@ -229,6 +240,14 @@ impl SyntaxNode {
                 parent.replace_with(new_parent)
             }
         }
+    }
+
+    pub fn node_id(&self) -> NodeId {
+        NodeId { kind: self.kind(), tree_id: self.tree_id(), text_range: self.text_range() }
+    }
+
+    pub fn tree_id(&self) -> TreeId {
+        self.0.tree_id
     }
 
     pub fn kind(&self) -> SyntaxKind {

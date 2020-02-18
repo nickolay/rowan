@@ -30,6 +30,7 @@ pub use crate::{
     api::{
         Language, SyntaxElement, SyntaxElementChildren, SyntaxNode, SyntaxNodeChildren, SyntaxToken,
     },
+    cursor::NodeId,
     green::{Checkpoint, Children, GreenNode, GreenNodeBuilder, GreenToken, SyntaxKind},
     syntax_text::SyntaxText,
     tree_id::TreeId,

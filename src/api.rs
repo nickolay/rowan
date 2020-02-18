@@ -1,8 +1,8 @@
 use std::{fmt, marker::PhantomData};
 
 use crate::{
-    cursor, Direction, GreenNode, GreenToken, NodeOrToken, SmolStr, SyntaxKind, SyntaxText,
-    TextRange, TextUnit, TokenAtOffset, WalkEvent,
+    cursor, Direction, GreenNode, GreenToken, NodeId, NodeOrToken, SmolStr, SyntaxKind, SyntaxText,
+    TextRange, TextUnit, TokenAtOffset, TreeId, WalkEvent,
 };
 
 pub trait Language: Sized + Clone + Copy + fmt::Debug + Eq + Ord + std::hash::Hash {
@@ -149,8 +149,19 @@ impl<L: Language> SyntaxNode<L> {
     pub fn new_root(green: GreenNode) -> SyntaxNode<L> {
         SyntaxNode::from(cursor::SyntaxNode::new_root(green))
     }
+    pub fn new_root_with_id(tree_id: TreeId, green: GreenNode) -> SyntaxNode<L> {
+        SyntaxNode::from(cursor::SyntaxNode::new_root_with_id(tree_id, green))
+    }
     pub fn replace_with(&self, replacement: GreenNode) -> GreenNode {
         self.raw.replace_with(replacement)
+    }
+
+    pub fn node_id(&self) -> NodeId {
+        self.raw.node_id()
+    }
+
+    pub fn tree_id(&self) -> TreeId {
+        self.raw.tree_id()
     }
 
     pub fn kind(&self) -> L::Kind {
