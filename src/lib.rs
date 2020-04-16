@@ -27,7 +27,7 @@ pub use text_unit::{TextRange, TextUnit};
 
 pub use crate::{
     api::{
-        Language, SyntaxElement, SyntaxElementChildren, SyntaxNode, SyntaxNodeChildren, SyntaxToken,
+        Language, SyntaxElement, SyntaxElementChildren, SyntaxNode, SyntaxNodeChildren, SyntaxToken, SyntaxNodePtr,
     },
     green::{Checkpoint, Children, GreenNode, GreenNodeBuilder, GreenToken, SyntaxKind},
     syntax_text::SyntaxText,

@@ -67,6 +67,17 @@ impl GreenNode {
         let r: &ThinData<_, _> = &self.data;
         r as *const _ as _
     }
+
+    pub(crate) fn child_by_offset(&self, offset: TextUnit) -> Option<(usize, TextUnit, &GreenNode)> {
+        let idx = match self.data.slice.binary_search_by_key(&offset, |(offset, _node)| *offset) {
+            Ok(i) => i,
+            Err(i) => i.checked_sub(1)?,
+        };
+        let (offset, node) = &self.data.slice[idx];
+        let node = node.as_node()?;
+
+        Some((idx, *offset, node))
+    }
 }
 
 #[derive(Debug, Clone)]
