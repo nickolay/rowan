@@ -146,14 +146,6 @@ impl PackedGreenElement {
             None
         }
     }
-
-    pub(crate) fn as_ref(&self) -> GreenElementRef<'_> {
-        if self.is_node() {
-            NodeOrToken::Node(self.as_node().unwrap())
-        } else {
-            NodeOrToken::Token(self.as_token().unwrap())
-        }
-    }
 }
 
 impl fmt::Debug for PackedGreenElement {
